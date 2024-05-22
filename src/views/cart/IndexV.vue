@@ -1,19 +1,13 @@
 <template>
     <div>
         <div id="page-wrap">
+            <h4 v-if="notif" class="notif">Item removed from cart successfully!</h4>
             <h1>Shopping Cart</h1>
-            <!-- <div v-for="item in cartItems" :key="item.id" class="product-container">
-                <img :src="item.imageUrl" alt="" class="product-image">
-                <div class="details-wrap">
-                    <h3>{{ item.name }}</h3>
-                    <p>Rp {{ item.price }}</p>
-                </div>
-                <button class="remove-button">Remove</button>
-            </div> -->
             <CartItemC
                 v-for="item in cartItems"
                 :key="item.id"
                 :item="item"
+                v-on:remove-item="removeFromCart($event)"
             />
             <h3 id="total-price">Total: Rp {{ totalPrice }}</h3>
             <button id="checkout-button">Check Out</button>
@@ -22,7 +16,7 @@
 </template>
 
 <script>
-import { cartItems } from '@/assets/data-seed';
+import axios from 'axios';
 import CartItemC from '../../components/CartItemC';
 export default {
     components: {
@@ -30,8 +24,13 @@ export default {
     },
     data() {
         return {
-            cartItems
+            cartItems: [],
+            notif: false,
         }
+    },
+    async created() {
+        const result = await axios.get('http://localhost:8000/v1/api/orders/user/1')
+        this.cartItems = result.data.products
     },
     computed: {
         totalPrice() {
@@ -39,6 +38,21 @@ export default {
                 (sum, item) => sum + Number(item.price),
                 0
             )
+        }
+    },
+    methods: {
+        async removeFromCart(productCode) {
+            await axios.delete(`http://localhost:8000/v1/api/orders/user/1/product/${productCode}`, {
+                product: productCode,
+            })
+            this.notif = true
+            setTimeout(() => {
+                this.notif = false;
+            }, 3000);
+            let indexCart = this.cartItems.map(function (item) {
+                return item.code
+            }).indexOf(productCode)
+            this.cartItems.splice(indexCart, 1)
         }
     }
 }
@@ -59,5 +73,13 @@ h1 {
 
 #checkout-button {
     width: 100%;
+}
+
+.notif {
+    text-align: center;
+    color: white;
+    background-color: #b84141;
+    padding: 3%;
+    border-radius: 8px;
 }
 </style>
